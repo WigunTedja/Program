@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
 
     # Aplikasi lokal Anda
-    'api.apps.ApiConfig', # atau cukup 'api'
+    'authentication.apps.AuthenticationConfig', # atau cukup 'api'
 ]
 
 MIDDLEWARE = [

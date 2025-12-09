@@ -1,0 +1,149 @@
+/* Reset dasar dan pengaturan font */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    /* Latar belakang biru sangat muda */
+    background-color: #e3f2fd;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+}
+
+/* Header styling */
+.main-header {
+    margin-bottom: 40px;
+}
+
+.main-header h1 {
+    /* Warna biru tua untuk judul */
+    color: #0d47a1;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.main-header p {
+    color: #546e7a;
+    font-size: 1.1rem;
+}
+
+/* Wrapper untuk kedua kartu otentikasi */
+.auth-wrapper {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    align-items: stretch;
+}
+
+/* Styling umum untuk kartu */
+.auth-card {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 15px;
+    /* Bayangan halus berwarna biru */
+    box-shadow: 0 10px 25px rgba(13, 71, 161, 0.1);
+    flex: 1; /* Membuat kedua kartu memiliki lebar yang sama */
+    text-align: left;
+    border-top: 5px solid transparent;
+}
+
+.auth-card h2 {
+    color: #0d47a1;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+/* Styling spesifik untuk membedakan kartu */
+.login-card {
+    border-top-color: #1976d2; /* Biru utama */
+}
+
+.register-card {
+    border-top-color: #64b5f6; /* Biru yang lebih terang */
+}
+
+/* Styling Formulir */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #455a64;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #cfd8dc;
+    border-radius: 8px;
+    font-family: inherit;
+    transition: border-color 0.3s;
+}
+
+/* Efek saat input diklik */
+.form-group input:focus {
+    outline: none;
+    border-color: #1976d2;
+}
+
+/* Styling Tombol */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Tombol Biru Penuh */
+.btn-primary {
+    background-color: #1976d2;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0d47a1;
+}
+
+/* Tombol Garis Biru */
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid #1976d2;
+    color: #1976d2;
+}
+
+.btn-outline:hover {
+    background-color: #1976d2;
+    color: white;
+}
+
+/* Media Query untuk Responsivitas (Layar HP) */
+@media (max-width: 768px) {
+    .auth-wrapper {
+        flex-direction: column; /* Menumpuk kartu secara vertikal pada layar kecil */
+    }
+    
+    .main-header h1 {
+        font-size: 2rem;
+    }
+}

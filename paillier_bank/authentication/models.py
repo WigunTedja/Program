@@ -5,6 +5,28 @@ from django.db import models
 from django.db import models
 from django.contrib.auth.models import User
 
+class Nasabah(models.Model):
+    # Relasi ke User Django (untuk Email & Password)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='nasabah')
+    
+    # Data Diri & Saldo (Sesuai diagram step 1 & 2)
+    nama_lengkap = models.CharField(max_length=255)
+    saldo = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    
+    # Keamanan (Sesuai diagram step 4)
+    # PIN disimpan dalam bentuk hash (bukan angka asli)
+    pin_hash = models.CharField(max_length=128) 
+    
+    # Keypair (Sesuai diagram step 6)
+    public_key = models.TextField()
+    encrypted_private_key = models.TextField() # Private key disimpan terenkripsi
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nama_lengkap} - {self.user.email}"
+
+
 # Model untuk menyimpan kunci publik Paillier yang terasosiasi dengan setiap pengguna.
 # Kunci ini penting untuk operasi kriptografi homomorfik pada saldo.
 class PaillierKey(models.Model):

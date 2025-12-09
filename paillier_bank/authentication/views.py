@@ -1,8 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from .models import Nasabah
+from .utils import generate_rsa_keypair
+from django.db import transaction
 from .serializers import UserRegisterSerializer, TransactionSerializer
 from .models import Account, Transaction, PaillierKey
 
@@ -15,6 +19,51 @@ def index(request):
 # ---------------------------------
 # --- VIEW UNTUK AUTENTIKASI ---
 # ---------------------------------
+
+# Registrasi akun nasabah
+@transaction.atomic # Memastikan semua tersimpan atau tidak sama sekali
+def registrasi_nasabah(request):
+    if request.method == 'POST':
+        # Mengambil data dari Form (Sesuai Diagram Step 4: Memberikan email, password, pin)
+        nama_lengkap = request.POST.get('nama')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        pin = request.POST.get('pin')
+        saldo_awal = request.POST.get('saldo_awal') # Di real case, ini diinput staff sebelumnya
+
+        # 1. Validasi Data (Sesuai Diagram Step 5: Memverifikasi data)
+        if User.objects.filter(email=email).exists():
+            return render(request, 'register.html', {'error': 'Email sudah terdaftar'})
+
+        # 2. Buat Akun User Django (Authentication)
+        user = User.objects.create_user(
+            username=email, # Kita pakai email sebagai username
+            email=email,
+            password=password
+        )
+
+        # 3. Generasi Keypair (Sesuai Diagram Step 6)
+        private_key_pem, public_key_pem = generate_rsa_keypair()
+
+        # 4. Simpan Data Nasabah
+        nasabah = Nasabah.objects.create(
+            user=user,
+            nama_lengkap=nama_lengkap,
+            saldo=saldo_awal,
+            pin_hash=make_password(pin), # Hash PIN demi keamanan
+            public_key=public_key_pem,
+            encrypted_private_key=private_key_pem 
+            # Catatan: Di produksi, enkripsi private key menggunakan PIN user di sini
+        )
+
+        # 5. Konfirmasi Berhasil (Sesuai Diagram Step 7)
+        return render(request, 'success.html', {'nama': nama_lengkap})
+
+    return render(request, 'register.html')
+
+def login_nasabah(request):
+    return render(request, status=200)
+
 
 class UserRegisterView(generics.CreateAPIView):
     """
