@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'rest_framework',
 
     # Aplikasi lokal Anda
-    'authentication.apps.AuthenticationConfig', # atau cukup 'api'
+    'authentication.apps.AuthenticationConfig',
+    'banking.apps.BankingConfig', 
 ]
 
 MIDDLEWARE = [
