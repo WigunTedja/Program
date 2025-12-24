@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk - Paillier Bank</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+</head>
+<body>
+
+    <div class="container">
+        <header class="main-header">
+            <h1>Paillier Bank</h1>
+        </header>
+
+        <div class="auth-wrapper" style="justify-content: center;">
+            <div class="auth-card" style="max-width: 400px; width: 100%; margin: 0 auto;">
+                <h2 style="text-align: center; margin-bottom: 20px;">Masuk Akun</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div style="background-color: #ffcdd2; color: #c62828; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; text-align: center;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="id_username">Username</label>
+                        <input type="text" name="username" class="form-control" required id="id_username" placeholder="Masukkan username Anda">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_password">Password</label>
+                        <input type="password" name="password" class="form-control" required id="id_password" placeholder="Masukkan password Anda">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Masuk</button>
+                </form>
+
+                <div style="text-align: center; margin-top: 20px; font-size: 0.9em;">
+                    <p>Belum punya akun? <a href="{% url 'register' %}" style="color: #2e7d32; text-decoration: none; font-weight: 600;">Daftar di sini</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

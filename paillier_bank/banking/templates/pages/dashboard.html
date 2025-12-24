@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Nasabah - Paillier Bank</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .welcome { color: #333; }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { padding: 20px; text-align: center; border: 1px solid #ddd; border-radius: 8px; transition: 0.3s; cursor: pointer; text-decoration: none; color: inherit; }
+        .card:hover { background-color: #e9ecef; transform: translateY(-2px); }
+        .btn-saldo { background-color: #28a745; color: white; border: none; }
+        .btn-transfer { background-color: #007bff; color: white; border: none; }
+        .logout-link { display: block; text-align: center; margin-top: 20px; color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Paillier Bank</h2>
+            <p class="welcome">Selamat datang, <strong>{{ user.username }}</strong></p>
+        </div>
+
+        <div class="action-grid">
+            <a href="{% url 'lihat_saldo' %}" class="card btn-saldo">
+                <h3>💰 Lihat Saldo</h3>
+                <p>Cek saldo terenkripsi Anda</p>
+            </a>
+
+            <a href="{% url 'transfer_saldo' %}" class="card btn-transfer">
+                <h3>💸 Transfer</h3>
+                <p>Kirim dana ke nasabah lain</p>
+            </a>
+        </div>
+
+        <a href="{% url 'logout' %}" class="logout-link">Keluar (Logout)</a>
+    </div>
+
+</body>
+</html>

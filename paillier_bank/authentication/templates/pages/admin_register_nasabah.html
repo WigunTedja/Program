@@ -1,0 +1,103 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Registrasi Nasabah</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
+    <style>
+        .admin-badge {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .alert-error { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+        .loader-info {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="main-header">
+            <h1>Paillier Bank</h1>
+            <p>Portal Administrasi</p>
+        </header>
+
+        <div class="auth-wrapper" style="justify-content: center;">
+            <div class="auth-card register-card" style="max-width: 500px;">
+                <div style="text-align: center;">
+                    <span class="admin-badge">ADMIN ONLY</span>
+                </div>
+                <h2>Registrasi Nasabah Baru</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="nama_lengkap">Nama Lengkap Nasabah</label>
+                        <input type="text" id="nama_lengkap" name="nama_lengkap" required placeholder="Contoh: Budi Santoso">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username">Username / Email</label>
+                        <input type="text" id="username" name="username" required placeholder="budi@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password Akun (Login)</label>
+                        <input type="password" id="password" name="password" required placeholder="********">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pin">PIN Keamanan (6 Digit)</label>
+                        <input type="password" id="pin" name="pin" maxlength="6" pattern="\d{6}" required placeholder="123456" title="Harus 6 digit angka">
+                        <small style="display:block; margin-top:5px; color:#666;">
+                            Digunakan untuk mengenkripsi Private Key nasabah. Jangan sampai lupa.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" onclick="this.innerHTML='Sedang Menggenerate Kunci... (Mohon Tunggu)';">
+                        Daftarkan Nasabah
+                    </button>
+                    
+                    <p class="loader-info">
+                        *Klik sekali saja. Proses ini memakan waktu beberapa detik untuk generate kunci kriptografi 1024-bit.
+                    </p>
+                </form>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <a href="{% url 'index' %}" style="text-decoration: none; color: #1976d2;">&larr; Kembali ke Beranda</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

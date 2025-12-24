@@ -35,16 +35,42 @@
 
         <div class="auth-wrapper" style="justify-content: center;">
             <div class="auth-card welcome-card">
-                <h2>Selamat Datang</h2>
-                <p style="margin-bottom: 25px; color: #666;">Silakan pilih opsi untuk melanjutkan:</p>
-                
-                <a href="{% url 'login' %}" class="btn btn-primary btn-link">
-                    Masuk Akun
-                </a>
+                <h2>Selamat Datang</h2> 
+                {% if user.is_authenticated %}
+                    <p style="margin-bottom: 25px; color: #666;">Halo, <b>{{ user.username }}</b>!</p>
+                    
+                    {% if user.is_staff %}
+                        <div style="background-color: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
+                            <p style="font-size: 0.9rem; color: #2e7d32; margin-bottom: 5px;">Menu Admin</p>
+                            <a href="{% url 'admin-register-nasabah' %}" class="btn btn-primary btn-link" style="background-color: #2e7d32; border-color: #2e7d32;">
+                                + Daftarkan Nasabah Baru
+                            </a>
+                        </div>
 
-                <a href="{% url 'register' %}" class="btn btn-outline btn-link">
-                    Buat Akun Baru
-                </a>
+                    {% else %}
+                        <div style="background-color: #e3f2fd; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #bbdefb;">
+                            <p style="font-size: 0.9rem; color: #1565c0; margin-bottom: 5px;">Menu Nasabah</p>
+                            <a href="{% url 'dashboard' %}" class="btn btn-primary btn-link">
+                                Masuk ke Dashboard
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <a href="{% url 'logout' %}" class="btn btn-outline btn-link" style="border-color: #dc3545; color: #dc3545; margin-top: 10px;">
+                        Keluar (Logout)
+                    </a>
+
+                {% else %}
+                    <p style="margin-bottom: 25px; color: #666;">Silakan pilih opsi untuk melanjutkan:</p>
+                    
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-link">
+                        Masuk Akun
+                    </a>
+
+                    <a href="{% url 'register' %}" class="btn btn-outline btn-link">
+                        Buat Akun Baru
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
