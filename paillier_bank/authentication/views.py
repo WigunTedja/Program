@@ -135,8 +135,9 @@ def is_admin(user):
 def admin_register_nasabah_page(request):
     if request.method == 'POST':
         # Ambil data dari Form HTML
-        username = request.POST.get('username')
         nama_lengkap = request.POST.get('nama_lengkap')
+        username = request.POST.get('username')
+        email = request.POST.get('email')
         password = request.POST.get('password') # Password untuk Login Akun
         pin = request.POST.get('pin') # PIN untuk Kriptografi
 
@@ -148,7 +149,7 @@ def admin_register_nasabah_page(request):
         try:
             with transaction.atomic():
                 # 2. Buat User Django
-                user = User.objects.create_user(username=username, email=username, password=password)
+                user = User.objects.create_user(username=username, email=email, password=password)
 
                 # 3. Generate Keypair Paillier (PERINGATAN: INI BERAT/LAMBAT)
                 # Browser akan loading lama di sini.
@@ -157,7 +158,7 @@ def admin_register_nasabah_page(request):
                 # 4. Enkripsi Private Key dengan PIN
                 salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
 
-                # 5. Buat Saldo Awal "0" terenkripsi
+                # 5. Buat Saldo Awal terenkripsi
                 encrypted_saldo_obj = public_key.encrypt(100000)
                 encrypted_saldo_str = str(encrypted_saldo_obj.ciphertext())
 
@@ -190,8 +191,8 @@ def login_view(request):
     # Jika user sudah login, langsung lempar ke halaman yang sesuai
     if request.user.is_authenticated:
         if request.user.is_staff:
-            return redirect('auth-welcome') # Atau halaman admin kamu
-        return redirect('dashboard') # Halaman dashboard nasabah
+            return redirect('dashboard') # Atau halaman admin kamu
+        return redirect('bank-dashboard') # Halaman dashboard nasabah
 
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -206,9 +207,9 @@ def login_view(request):
                 # Jika Admin -> arahkan ke welcome page (atau admin dashboard)
                 # Jika Nasabah -> arahkan ke dashboard
                 if user.is_staff:
-                    return redirect('auth-welcome') # Ganti dengan nama URL halaman welcome kamu
+                    return redirect('dashboard') # Ganti dengan nama URL halaman welcome kamu
                 else:
-                    return redirect('dashboard') # Pastikan URL name 'dashboard' sudah ada
+                    return redirect('bank-dashboard') # Pastikan URL name 'dashboard' sudah ada
             else:
                 messages.error(request, "Username atau password salah.")
         else:

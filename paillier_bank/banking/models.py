@@ -1,9 +1,5 @@
 from django.db import models
 
-# Create your models here.
-
-from django.db import models
-
 # Model untuk mencatat setiap transaksi yang terjadi.
 class Transaction(models.Model):
     # Pilihan untuk tipe transaksi yang bisa terjadi.
