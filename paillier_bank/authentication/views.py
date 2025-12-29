@@ -10,53 +10,15 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db import transaction
+from .utils import encrypt_private_key
 from .models import Nasabah
 from .serializers import NasabahSerializer
 
-# Library Kriptografi & Helper
-import json
-import os
-import base64
+# Library Kriptografi
 import hashlib
 from phe import paillier
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-# --- FUNGSI HELPER (Untuk Enkripsi Private Key) ---
-
-def generate_aes_key_from_pin(pin, salt):
-    """Mengubah PIN + Salt menjadi Kunci AES 32-byte"""
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-    )
-    return base64.urlsafe_b64encode(kdf.derive(pin.encode()))
-
-def encrypt_private_key(private_key_obj, pin):
-    """Enkripsi Private Key Paillier menggunakan PIN"""
-    # 1. Serialisasi Private Key ke JSON
-    priv_data = {
-        'p': private_key_obj.p,
-        'q': private_key_obj.q,
-        'n': private_key_obj.public_key.n
-    }
-    priv_json = json.dumps(priv_data)
-    
-    # 2. Generate Salt dan Kunci AES
-    salt = os.urandom(16)
-    key = generate_aes_key_from_pin(pin, salt)
-    
-    # 3. Enkripsi
-    f = Fernet(key)
-    encrypted_blob = f.encrypt(priv_json.encode())
-    
-    return salt.hex(), encrypted_blob.decode()
 
 # --- API VIEW ---
-
 def index(request):
     return render(request, 'pages/index.html')
 
