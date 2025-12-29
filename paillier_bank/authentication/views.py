@@ -221,5 +221,10 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    # Dengan memanggil get_messages dan mengiterasinya, 
+    # Django menganggap pesan sudah "dibaca" dan menghapusnya dari antrian.
+    storage = messages.get_messages(request)
+    for message in storage:
+        pass # Kita tidak melakukan apa-apa, cuma biar dianggap sudah dibaca.
     # Setelah logout, arahkan kembali ke halaman login atau halaman welcome
     return redirect('login')
