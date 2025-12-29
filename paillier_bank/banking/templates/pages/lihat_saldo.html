@@ -1,29 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Saldo Nasabah</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 500px; }
-        .nominal { font-size: 24px; color: green; font-weight: bold; }
-        .enc-info { font-size: 12px; color: #666; word-wrap: break-word; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>Halo, {{ nama }}</h2>
-        <p>Saldo rekening Anda saat ini adalah:</p>
-        
-        <p class="nominal">Rp {{ saldo }}</p>
-        
-        <hr>
-        
-        <p><strong>Info Teknis (Paillier):</strong></p>
-        <p>Data di database tersimpan sebagai ciphertext:</p>
-        <p class="enc-info">{{ saldo_encrypted_preview }}</p>
-    </div>
+{% extends 'base.html' %} 
+
+{% block content %}
+<div class="container mt-5">
     
-    <br>
-    <a href="/">Kembali ke Home</a>
-</body>
-</html>
+    <div class="mb-4">
+        <a href="{% url 'bank-dashboard' %}" class="btn btn-outline-secondary">
+            &larr; Kembali ke Dashboard
+        </a>
+    </div>
+
+    <h2>Cek Saldo Homomorfik</h2>
+    <p>Halo, {{ nasabah.nama_lengkap }}. Saldo Anda tersimpan terenkripsi.</p>
+    <p>Status Data Database (Ciphertext): <code>{{ nasabah.encrypted_saldo|truncatechars:50 }}...</code></p>
+
+    {% if saldo is not None %}
+        <div class="alert alert-success mt-4">
+            <h4 class="alert-heading">Saldo Anda: Rp {{ saldo }}</h4>
+            <p>Data ini baru saja didekripsi dari ciphertext menggunakan Private Key Anda.</p>
+            <hr>
+            <p class="mb-0 small text-muted">Ingat, saldo ini hanya muncul sekali ini saja. Refresh halaman akan menguncinya kembali.</p>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'lihat-saldo' %}" class="btn btn-warning">Tutup / Bersihkan Layar</a>
+            <a href="{% url 'bank-dashboard' %}" class="btn btn-secondary ms-2">Ke Dashboard</a>
+        </div>
+
+    {% else %}
+        <div class="card mt-4 shadow-sm" style="max-width: 500px;">
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="pin" class="form-label fw-bold">Masukkan PIN untuk Mendekripsi Saldo</label>
+                        <input type="password" class="form-control" id="pin" name="pin" maxlength="6" required placeholder="******">
+                        <div class="form-text text-danger">
+                            <small>* PIN dibutuhkan untuk membuka enkripsi AES pada Private Key Paillier Anda.</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Buka Kunci & Lihat Saldo</button>
+                        <a href="{% url 'bank-dashboard' %}" class="btn btn-light text-muted">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
