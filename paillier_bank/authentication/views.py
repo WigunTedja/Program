@@ -153,7 +153,7 @@ def login_view(request):
     # Jika user sudah login, langsung lempar ke halaman yang sesuai
     if request.user.is_authenticated:
         if request.user.is_staff:
-            return redirect('dashboard') # Atau halaman admin kamu
+            return redirect('admin-bank-dashboard') # Atau halaman admin kamu
         return redirect('bank-dashboard') # Halaman dashboard nasabah
 
     if request.method == 'POST':
@@ -166,12 +166,10 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 # LOGIC REDIRECTION:
-                # Jika Admin -> arahkan ke welcome page (atau admin dashboard)
-                # Jika Nasabah -> arahkan ke dashboard
                 if user.is_staff:
-                    return redirect('dashboard') # Ganti dengan nama URL halaman welcome kamu
+                    return redirect('admin-bank-dashboard') 
                 else:
-                    return redirect('bank-dashboard') # Pastikan URL name 'dashboard' sudah ada
+                    return redirect('bank-dashboard')
             else:
                 messages.error(request, "Username atau password salah.")
         else:

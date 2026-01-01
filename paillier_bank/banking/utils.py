@@ -46,3 +46,23 @@ def decrypt_private_key(encrypted_blob_str, pin, salt_hex, pub_n):
     except Exception as e:
         # Jika PIN salah, Fernet akan raise InvalidToken / error dekripsi
         raise ValueError("Gagal mendekripsi private key. PIN mungkin salah.")
+
+def encrypt_private_key(private_key_obj, pin):
+    """Enkripsi Private Key Paillier menggunakan PIN"""
+    # 1. Serialisasi Private Key ke JSON
+    priv_data = {
+        'p': private_key_obj.p,
+        'q': private_key_obj.q,
+        'n': private_key_obj.public_key.n
+    }
+    priv_json = json.dumps(priv_data)
+    
+    # 2. Generate Salt dan Kunci AES
+    salt = os.urandom(16)
+    key = generate_aes_key_from_pin(pin, salt)
+    
+    # 3. Enkripsi
+    f = Fernet(key)
+    encrypted_blob = f.encrypt(priv_json.encode())
+    
+    return salt.hex(), encrypted_blob.decode()
