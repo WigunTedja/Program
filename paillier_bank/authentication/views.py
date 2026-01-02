@@ -9,148 +9,13 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db import transaction
-from .utils import encrypt_private_key
-from .models import Nasabah
-from .serializers import NasabahSerializer
-
-# Library Kriptografi
-import hashlib
-from phe import paillier
 
 # --- API VIEW ---
 def index(request):
     return render(request, 'pages/index.html')
 
-class RegisterNasabahView(APIView):
-    """
-    Endpoint untuk mendaftarkan nasabah baru.
-    Hanya bisa diakses oleh Staff/Admin via Postman/API.
-    """
-    # Menggunakan Basic Auth agar Postman bisa akses tanpa CSRF Token
-    authentication_classes = [BasicAuthentication]
-    permission_classes = [permissions.IsAdminUser] 
-
-    def post(self, request):
-        data = request.data
-        
-        # 1. Validasi Input
-        required = ['username', 'password', 'nama_lengkap', 'pin']
-        for field in required:
-            if field not in data:
-                return Response({"error": f"Field {field} wajib diisi"}, status=status.HTTP_400_BAD_REQUEST)
-
-        username = data['username']
-        password = data['password']
-        nama_lengkap = data['nama_lengkap']
-        pin = data['pin']
-
-        # Validasi sederhana
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "Username sudah digunakan"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            with transaction.atomic():
-                # 2. Buat User Django
-                user = User.objects.create_user(username=username, password=password)
-
-                # 3. Generate Keypair Paillier (Logic Inti)
-                # n_length=1024 cukup untuk development
-                public_key, private_key = paillier.generate_paillier_keypair(n_length=1024)
-
-                # 4. Amankan Private Key dengan PIN Nasabah
-                salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
-
-                # 5. Buat Saldo Awal "0" terenkripsi
-                encrypted_saldo_obj = public_key.encrypt(0)
-                encrypted_saldo_str = str(encrypted_saldo_obj.ciphertext())
-
-                # 6. Hash PIN (untuk login cepat)
-                pin_hash = hashlib.sha256(pin.encode()).hexdigest()
-
-                # 7. Simpan ke Database Nasabah
-                nasabah = Nasabah.objects.create(
-                    user=user,
-                    nama_lengkap=nama_lengkap,
-                    pub_key_n=str(public_key.n),
-                    pub_key_g=str(public_key.g),
-                    priv_pail_key=encrypted_priv_key,
-                    key_salt=salt_hex,
-                    pin_hash=pin_hash,
-                    encrypted_saldo=encrypted_saldo_str
-                )
-                # Return Data
-                serializer = NasabahSerializer(nasabah)
-                return Response({
-                    "message": "Registrasi Nasabah Berhasil",
-                    "data": serializer.data
-                }, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-def is_admin(user):
-    return user.is_authenticated and user.is_staff
-
-@login_required(login_url='/auth/login/') # Pastikan sudah login
-@user_passes_test(is_admin) # Pastikan user adalah Staff/Admin
-def admin_register_nasabah_page(request):
-    if request.method == 'POST':
-        # Ambil data dari Form HTML
-        nama_lengkap = request.POST.get('nama_lengkap')
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password') # Password untuk Login Akun
-        pin = request.POST.get('pin') # PIN untuk Kriptografi
-
-        # 1. Validasi Sederhana
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username/Email sudah digunakan!")
-            return render(request, 'pages/admin_register_nasabah.html')
-
-        try:
-            with transaction.atomic():
-                # 2. Buat User Django
-                user = User.objects.create_user(username=username, email=email, password=password)
-
-                # 3. Generate Keypair Paillier (PERINGATAN: INI BERAT/LAMBAT)
-                # Browser akan loading lama di sini.
-                public_key, private_key = paillier.generate_paillier_keypair(n_length=1024)
-
-                # 4. Enkripsi Private Key dengan PIN
-                salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
-
-                # 5. Buat Saldo Awal terenkripsi
-                encrypted_saldo_obj = public_key.encrypt(100000)
-                encrypted_saldo_str = str(encrypted_saldo_obj.ciphertext())
-
-                # 6. Hash PIN
-                pin_hash = hashlib.sha256(pin.encode()).hexdigest()
-
-                # 7. Simpan Nasabah
-                Nasabah.objects.create(
-                    user=user,
-                    nama_lengkap=nama_lengkap,
-                    pub_key_n=str(public_key.n),
-                    pub_key_g=str(public_key.g),
-                    priv_pail_key=encrypted_priv_key,
-                    key_salt=salt_hex,
-                    pin_hash=pin_hash,
-                    encrypted_saldo=encrypted_saldo_str
-                )
-
-                messages.success(request, f"Sukses! Nasabah {nama_lengkap} berhasil didaftarkan dengan Kunci Homomorfik.")
-                return redirect('admin-register-nasabah')
-
-        except Exception as e:
-            messages.error(request, f"Terjadi Kesalahan Sistem: {str(e)}")
-            return render(request, 'pages/admin_register_nasabah.html')
-
-    # Jika GET, tampilkan form kosong
-    return render(request, 'pages/admin_register_nasabah.html')
-
 def login_view(request):
-    # Jika user sudah login, langsung lempar ke halaman yang sesuai
+    # Jika user sudah login, redirect
     if request.user.is_authenticated:
         if request.user.is_staff:
             return redirect('admin-bank-dashboard') # Atau halaman admin kamu
@@ -162,7 +27,7 @@ def login_view(request):
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
-            
+
             if user is not None:
                 login(request, user)
                 # LOGIC REDIRECTION:

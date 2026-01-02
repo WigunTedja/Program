@@ -1,15 +1,18 @@
-# views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from authentication.models import Nasabah
 from django.http import HttpResponse
 import hashlib
-from phe import paillier
-from .utils import decrypt_private_key, encrypt_private_key
+from phe import paillier, EncryptedNumber
+from .utils import decrypt_private_key, encrypt_private_key, paillier_encrypt
 
+
+def is_admin(user):
+    return user.is_authenticated and user.is_staff
 
 @login_required(login_url='login')
 def dashboard(request):
@@ -34,20 +37,15 @@ def admin_dashboard(request):
     return render(request, 'pages/admin_bank_dashboard.html', context)
 
 
-def is_admin(user):
-    return user.is_authenticated and user.is_staff
-
-@login_required(login_url='/auth/login/') # Pastikan sudah login
-@user_passes_test(is_admin) # Pastikan user adalah Staff/Admin
+@login_required(login_url='/auth/login/')
+@user_passes_test(is_admin)
 def admin_register_nasabah_page(request):
     if request.method == 'POST':
-        # Ambil data dari Form HTML
         nama_lengkap = request.POST.get('nama_lengkap')
         username = request.POST.get('username')
         email = request.POST.get('email')
-        password = request.POST.get('password') # Password untuk Login Akun
-        pin = request.POST.get('pin') # PIN untuk Kriptografi
-
+        password = request.POST.get('password')
+        pin = request.POST.get('pin')
         # 1. Validasi Sederhana
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username/Email sudah digunakan!")
@@ -93,6 +91,75 @@ def admin_register_nasabah_page(request):
 
     # Jika GET, tampilkan form kosong
     return render(request, 'pages/admin_register_nasabah.html')
+
+
+@login_required(login_url='/auth/login/')
+@user_passes_test(is_admin)
+def admin_setor_tunai(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        nominal_setor = request.POST.get('nominal_setor')
+
+        try:
+            # Validasi input kosong
+            if not nominal_setor or (not username and not email):
+                raise ValueError("Data nasabah atau nominal tidak boleh kosong.")
+            
+            nominal_int = int(nominal_setor)
+            if nominal_int <= 0:
+                raise ValueError("Nominal setor harus positif.")
+
+            with transaction.atomic():
+                # 1. Cari User (Username OR Email)
+                # Gunakan Q objects untuk logika OR
+                user_query = User.objects.filter(Q(username=username) | Q(email=email))
+                
+                if not user_query.exists():
+                    raise ValueError("User dengan username/email tersebut tidak ditemukan.")
+
+                target_user = user_query.first()
+
+                # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
+                # select_for_update() akan menahan transaksi lain sampai ini selesai
+                nasabah = Nasabah.objects.select_for_update().get(user=target_user)
+
+                # 3. Ambil Public Key & Konversi ke Integer
+                # Asumsi di model disimpan sebagai string/text
+                # n = int(nasabah.pub_key_n)
+                # g = int(nasabah.pub_key_g)
+                # n_sq = n * n
+
+                pub_key = paillier.PaillierPublicKey(n=int(nasabah.pub_key_n))
+
+                # 4. Encrypt Nominal Setor (m_deposit -> c_deposit)
+                # c_deposit = paillier_encrypt(nominal_int, n, g)
+                c_saldo = EncryptedNumber(pub_key, int(nasabah.encrypted_saldo))
+                c_setor = pub_key.encrypt(int(nominal_setor))
+                # 5. Operasi Homomorphic Addition
+                # Rumus: c_new = (c_current * c_deposit) mod n^2
+                # c_current = int(nasabah.saldo_encrypted)
+                
+                # c_total = (c_current * c_deposit) % n_sq
+                c_total_saldo = c_saldo + c_setor
+
+
+                # 6. Simpan Hasil (Kembalikan ke string)
+                nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
+                nasabah.save()
+
+                messages.success(request, f"Sukses! Saldo  ditambahkan ke {nasabah.nama_lengkap}.")
+                return redirect('admin-setor-tunai') 
+
+        except Nasabah.DoesNotExist:
+            messages.error(request, "User ditemukan, tapi belum terdaftar sebagai Nasabah (Profile belum dibuat).")
+        except ValueError as ve:
+            messages.error(request, str(ve))
+        except Exception as e:
+            messages.error(request, f"Terjadi Kesalahan Sistem: {str(e)}")
+            
+    return render(request, 'pages/admin_setor_tunai.html')
+
 
 @login_required(login_url='login')
 def lihat_saldo(request):

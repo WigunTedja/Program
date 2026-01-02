@@ -2,6 +2,7 @@
 import json
 import os
 import base64
+import random
 from phe import paillier
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -66,3 +67,13 @@ def encrypt_private_key(private_key_obj, pin):
     encrypted_blob = f.encrypt(priv_json.encode())
     
     return salt.hex(), encrypted_blob.decode()
+
+def paillier_encrypt(m, n, g):
+    n_sq = n * n
+    r = random.randint(1, n - 1)  # Random r
+    # c = (g^m * r^n) mod n^2
+    # Gunakan pow(base, exp, mod) untuk efisiensi big int
+    gm = pow(g, m, n_sq)
+    rn = pow(r, n, n_sq)
+    c = (gm * rn) % n_sq
+    return c

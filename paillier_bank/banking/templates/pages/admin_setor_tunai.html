@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Setor Tunai</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h2 { margin-bottom: 5px; color: #333; }
+        .header p { color: #666; font-size: 0.9rem; }
+
+        /* Form Styles */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 0.9rem; }
+        input[type="text"], input[type="email"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Agar padding tidak melebarkan input */
+            font-size: 1rem;
+        }
+        input:focus { border-color: #28a745; outline: none; }
+        
+        .separator { text-align: center; margin: 10px 0; color: #999; font-size: 0.8rem; position: relative; }
+        .separator::before, .separator::after {
+            content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #eee;
+        }
+        .separator::before { left: 0; }
+        .separator::after { right: 0; }
+
+        .helper-text { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+        /* Buttons */
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745; /* Hijau sama dengan tombol dashboard */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .btn-submit:hover { background-color: #218838; }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { color: #333; }
+
+        /* Messages / Alerts */
+        .messages { list-style: none; padding: 0; margin-bottom: 20px; }
+        .alert { padding: 10px 15px; border-radius: 4px; margin-bottom: 10px; font-size: 0.9rem; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Setor Tunai</h2>
+            <p>Masukkan saldo ke rekening nasabah (Homomorfik)</p>
+        </div>
+
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                        {{ message }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="POST" action="{% url 'admin-setor-tunai' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="username">Username Nasabah</label>
+                <input type="text" name="username" id="username" placeholder="Masukkan username...">
+            </div>
+
+            <div class="separator">ATAU</div>
+
+            <div class="form-group">
+                <label for="email">Email Nasabah</label>
+                <input type="email" name="email" id="email" placeholder="Masukkan email...">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <div class="form-group">
+                <label for="nominal_setor">Nominal Setor (Rp)</label>
+                <input type="number" name="nominal_setor" id="nominal_setor" required min="1" placeholder="Contoh: 50000">
+                <p class="helper-text">*Nominal akan dienkripsi sebelum disimpan.</p>
+            </div>
+
+            <button type="submit" class="btn-submit">Proses Transaksi</button>
+        </form>
+
+        <a href="{% url 'admin-bank-dashboard' %}" class="back-link">&larr; Kembali ke Dashboard</a>
+    </div>
+
+</body>
+</html>
