@@ -160,6 +160,71 @@ def admin_setor_tunai(request):
             
     return render(request, 'pages/admin_setor_tunai.html')
 
+def admin_tarik_tunai(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        nominal_tarik = request.POST.get('nominal_tarik')
+
+        try:
+            # Validasi input kosong
+            if not nominal_tarik or (not username and not email):
+                raise ValueError("Data nasabah atau nominal tidak boleh kosong.")
+            
+            nominal_int = int(nominal_tarik)
+            if nominal_int <= 0:
+                raise ValueError("Nominal tarik harus positif.")
+
+            with transaction.atomic():
+                # 1. Cari User (Username OR Email)
+                # Gunakan Q objects untuk logika OR
+                user_query = User.objects.filter(Q(username=username) | Q(email=email))
+                
+                if not user_query.exists():
+                    raise ValueError("User dengan username/email tersebut tidak ditemukan.")
+
+                target_user = user_query.first()
+
+                # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
+                # select_for_update() akan menahan transaksi lain sampai ini selesai
+                nasabah = Nasabah.objects.select_for_update().get(user=target_user)
+
+                # 3. Ambil Public Key & Konversi ke Integer
+                # Asumsi di model disimpan sebagai string/text
+                # n = int(nasabah.pub_key_n)
+                # g = int(nasabah.pub_key_g)
+                # n_sq = n * n
+
+                pub_key = paillier.PaillierPublicKey(n=int(nasabah.pub_key_n))
+
+                # 4. Encrypt Nominal tarik (m_deposit -> c_deposit)
+                # c_deposit = paillier_encrypt(nominal_int, n, g)
+                c_saldo = EncryptedNumber(pub_key, int(nasabah.encrypted_saldo))
+                c_tarik = pub_key.encrypt(int(nominal_tarik))
+                # 5. Operasi Homomorphic Addition
+                # Rumus: c_new = (c_current * c_deposit) mod n^2
+                # c_current = int(nasabah.saldo_encrypted)
+                
+                # c_total = (c_current * c_deposit) % n_sq
+                c_total_saldo = c_saldo - c_tarik
+
+
+                # 6. Simpan Hasil (Kembalikan ke string)
+                nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
+                nasabah.save()
+
+                messages.success(request, f"Sukses! Saldo  ditarik dari {nasabah.nama_lengkap}.")
+                return redirect('admin-tarik-tunai') 
+
+        except Nasabah.DoesNotExist:
+            messages.error(request, "User ditemukan, tapi belum terdaftar sebagai Nasabah (Profile belum dibuat).")
+        except ValueError as ve:
+            messages.error(request, str(ve))
+        except Exception as e:
+            messages.error(request, f"Terjadi Kesalahan Sistem: {str(e)}")
+
+    return render(request, 'pages/admin_tarik_tunai.html')
+
 
 @login_required(login_url='login')
 def lihat_saldo(request):
