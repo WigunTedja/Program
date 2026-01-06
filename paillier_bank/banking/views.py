@@ -9,6 +9,7 @@ from django.http import HttpResponse
 import hashlib
 from phe import paillier, EncryptedNumber
 from .utils import decrypt_private_key, encrypt_private_key, paillier_encrypt
+from .models import Transaction
 
 
 def is_admin(user):
@@ -97,8 +98,8 @@ def admin_register_nasabah_page(request):
 @user_passes_test(is_admin)
 def admin_setor_tunai(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
         nominal_setor = request.POST.get('nominal_setor')
 
         try:
@@ -111,14 +112,22 @@ def admin_setor_tunai(request):
                 raise ValueError("Nominal setor harus positif.")
 
             with transaction.atomic():
-                # 1. Cari User (Username OR Email)
-                # Gunakan Q objects untuk logika OR
-                user_query = User.objects.filter(Q(username=username) | Q(email=email))
+                filters = Q()
+
+                if username:
+                    filters |= Q(username=username)
+                if email:
+                    filters |= Q(email=email)
+
+                if not filters:
+                    raise ValueError("Isikan username atau email nasabah")
+                
+                user_query = User.objects.filter(filters)
                 
                 if not user_query.exists():
                     raise ValueError("User dengan username/email tersebut tidak ditemukan.")
 
-                target_user = user_query.first()
+                target_user = user_query.get()
 
                 # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
                 # select_for_update() akan menahan transaksi lain sampai ini selesai
@@ -148,6 +157,15 @@ def admin_setor_tunai(request):
                 nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
                 nasabah.save()
 
+                # 7. Catat riwayat transaksi 
+                Transaction.objects.create(
+                    nasabah= nasabah,
+                    transaction_type = 'SETOR',
+                    amount_enc_sender= str(c_setor.ciphertext()),
+                    amount_enc_receiver= None,
+                    related_nasabah= None,
+                )
+
                 messages.success(request, f"Sukses! Saldo  ditambahkan ke {nasabah.nama_lengkap}.")
                 return redirect('admin-setor-tunai') 
 
@@ -162,8 +180,8 @@ def admin_setor_tunai(request):
 
 def admin_tarik_tunai(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
+        username = request.POST.get('username','').strip()
+        email = request.POST.get('email','').strip
         nominal_tarik = request.POST.get('nominal_tarik')
 
         try:
@@ -176,14 +194,21 @@ def admin_tarik_tunai(request):
                 raise ValueError("Nominal tarik harus positif.")
 
             with transaction.atomic():
-                # 1. Cari User (Username OR Email)
-                # Gunakan Q objects untuk logika OR
-                user_query = User.objects.filter(Q(username=username) | Q(email=email))
+                filters =Q()
+
+                if username:
+                    filters |= Q(username=username)
+                if email:
+                    filters |= Q(email=email)
+                if not filters:
+                    raise ValueError("Isikan username atau email nasabah")
+                
+                user_query = User.objects.filter(filters)
                 
                 if not user_query.exists():
                     raise ValueError("User dengan username/email tersebut tidak ditemukan.")
 
-                target_user = user_query.first()
+                target_user = user_query.get()
 
                 # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
                 # select_for_update() akan menahan transaksi lain sampai ini selesai
@@ -212,6 +237,15 @@ def admin_tarik_tunai(request):
                 # 6. Simpan Hasil (Kembalikan ke string)
                 nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
                 nasabah.save()
+
+                # 7. Catat riwayat transaksi
+                Transaction.objects.create(
+                    nasabah=nasabah,
+                    transaction_type = 'TARIK',
+                    amount_enc_sender = str(c_tarik.ciphertext()),
+                    amount_enc_receiver = None,
+                    related_nasabah = None,
+                )
 
                 messages.success(request, f"Sukses! Saldo  ditarik dari {nasabah.nama_lengkap}.")
                 return redirect('admin-tarik-tunai') 
