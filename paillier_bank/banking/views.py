@@ -8,7 +8,7 @@ from authentication.models import Nasabah
 from django.http import HttpResponse
 import hashlib
 from phe import paillier, EncryptedNumber
-from .utils import decrypt_private_key, encrypt_private_key, paillier_encrypt
+from .utils import decrypt_private_key, encrypt_private_key, paillier_encrypt, generate_paillier_keypair, paillier_addition, paillier_subtraction, PublicKey
 from .models import Transaction
 
 
@@ -59,7 +59,7 @@ def admin_register_nasabah_page(request):
 
                 # 3. Generate Keypair Paillier (PERINGATAN: INI BERAT/LAMBAT)
                 # Browser akan loading lama di sini.
-                public_key, private_key = paillier.generate_paillier_keypair(n_length=1024)
+                public_key, private_key = generate_paillier_keypair(n_length=1024)
 
                 # 4. Enkripsi Private Key dengan PIN
                 salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
@@ -134,34 +134,27 @@ def admin_setor_tunai(request):
                 nasabah = Nasabah.objects.select_for_update().get(user=target_user)
 
                 # 3. Ambil Public Key & Konversi ke Integer
-                # Asumsi di model disimpan sebagai string/text
-                # n = int(nasabah.pub_key_n)
-                # g = int(nasabah.pub_key_g)
+                n = int(nasabah.pub_key_n)
+                public_key = PublicKey(n)
                 # n_sq = n * n
 
-                pub_key = paillier.PaillierPublicKey(n=int(nasabah.pub_key_n))
-
                 # 4. Encrypt Nominal Setor (m_deposit -> c_deposit)
-                # c_deposit = paillier_encrypt(nominal_int, n, g)
-                c_saldo = EncryptedNumber(pub_key, int(nasabah.encrypted_saldo))
-                c_setor = pub_key.encrypt(int(nominal_setor))
-                # 5. Operasi Homomorphic Addition
-                # Rumus: c_new = (c_current * c_deposit) mod n^2
-                # c_current = int(nasabah.saldo_encrypted)
-                
-                # c_total = (c_current * c_deposit) % n_sq
-                c_total_saldo = c_saldo + c_setor
+                plain_setor = int(nominal_setor)
+                cipher_setor = public_key.encrypt(plain_setor)
+                cipher_saldo = int(nasabah.encrypted_saldo)
 
+                # 5. Operasi Homomorphic Addition
+                cipher_saldo_baru = paillier_addition(cipher_saldo, cipher_setor.ciphertext(), n)
 
                 # 6. Simpan Hasil (Kembalikan ke string)
-                nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
+                nasabah.encrypted_saldo = str(cipher_saldo_baru)
                 nasabah.save()
 
                 # 7. Catat riwayat transaksi 
                 Transaction.objects.create(
                     nasabah= nasabah,
                     transaction_type = 'SETOR',
-                    amount_enc_sender= str(c_setor.ciphertext()),
+                    amount_enc_sender= str(cipher_setor.ciphertext()),
                     amount_enc_receiver= None,
                     related_nasabah= None,
                 )
@@ -181,7 +174,7 @@ def admin_setor_tunai(request):
 def admin_tarik_tunai(request):
     if request.method == 'POST':
         username = request.POST.get('username','').strip()
-        email = request.POST.get('email','').strip
+        email = request.POST.get('email','').strip()
         nominal_tarik = request.POST.get('nominal_tarik')
 
         try:
@@ -211,38 +204,30 @@ def admin_tarik_tunai(request):
                 target_user = user_query.get()
 
                 # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
-                # select_for_update() akan menahan transaksi lain sampai ini selesai
                 nasabah = Nasabah.objects.select_for_update().get(user=target_user)
 
                 # 3. Ambil Public Key & Konversi ke Integer
-                # Asumsi di model disimpan sebagai string/text
-                # n = int(nasabah.pub_key_n)
-                # g = int(nasabah.pub_key_g)
+                n = int(nasabah.pub_key_n)
+                public_key = PublicKey(n)
                 # n_sq = n * n
 
-                pub_key = paillier.PaillierPublicKey(n=int(nasabah.pub_key_n))
-
                 # 4. Encrypt Nominal tarik (m_deposit -> c_deposit)
-                # c_deposit = paillier_encrypt(nominal_int, n, g)
-                c_saldo = EncryptedNumber(pub_key, int(nasabah.encrypted_saldo))
-                c_tarik = pub_key.encrypt(int(nominal_tarik))
-                # 5. Operasi Homomorphic Addition
-                # Rumus: c_new = (c_current * c_deposit) mod n^2
-                # c_current = int(nasabah.saldo_encrypted)
+                plain_tarik = int(nominal_tarik)
+                cipher_tarik = public_key.encrypt(plain_tarik)
+                cipher_saldo = int(nasabah.encrypted_saldo)
+
+                # 5. Operasi Homomorphic Subtraction
+                cipher_saldo_baru = paillier_subtraction(cipher_saldo, cipher_tarik.ciphertext(), n)
                 
-                # c_total = (c_current * c_deposit) % n_sq
-                c_total_saldo = c_saldo - c_tarik
-
-
                 # 6. Simpan Hasil (Kembalikan ke string)
-                nasabah.encrypted_saldo = str(c_total_saldo.ciphertext())
+                nasabah.encrypted_saldo = str(cipher_saldo_baru)
                 nasabah.save()
 
                 # 7. Catat riwayat transaksi
                 Transaction.objects.create(
                     nasabah=nasabah,
                     transaction_type = 'TARIK',
-                    amount_enc_sender = str(c_tarik.ciphertext()),
+                    amount_enc_sender = str(cipher_tarik.ciphertext()),
                     amount_enc_receiver = None,
                     related_nasabah = None,
                 )
