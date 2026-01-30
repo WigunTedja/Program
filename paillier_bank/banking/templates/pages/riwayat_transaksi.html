@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    
+    <div class="mb-4">
+        <a href="{% url 'bank-dashboard' %}" class="btn btn-outline-secondary">
+            &larr; Kembali ke Dashboard
+        </a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Riwayat Transaksi</h2>
+        {% if pin_verified %}
+            <span class="badge bg-success">Data Terdekripsi</span>
+        {% else %}
+            <span class="badge bg-secondary">Data Terkunci (Ciphertext)</span>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not pin_verified %}
+        <div class="card shadow-sm mx-auto" style="max-width: 500px;">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Otentikasi Diperlukan</h5>
+                <p class="text-muted small">Riwayat transaksi Anda dienkripsi secara homomorfik. Masukkan PIN untuk mendekripsi data deskripsi dan nominal secara lokal.</p>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="pin" class="form-label fw-bold">PIN Keamanan</label>
+                        <input type="password" class="form-control form-control-lg text-center" id="pin" name="pin" 
+                               maxlength="6" required placeholder="••••••" style="letter-spacing: 0.5rem;">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Buka Riwayat Transaksi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Tipe</th>
+                                <th>Deskripsi</th>
+                                <th class="text-end">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in transaksi %}
+                            <tr>
+                                <td class="align-middle">
+                                    <small class="text-muted">{{ tx.timestamp|date:"d M Y" }}</small><br>
+                                    {{ tx.timestamp|date:"H:i" }}
+                                </td>
+                                <td class="align-middle">
+                                    {% if tx.type == 'SETOR' %}
+                                        <span class="badge rounded-pill bg-success">SETOR</span>
+                                    {% elif tx.type == 'TARIK' %}
+                                        <span class="badge rounded-pill bg-danger">TARIK</span>
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-primary">{{ tx.type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">
+                                    <strong>{{ tx.deskripsi }}</strong>
+                                </td>
+                                <td class="align-middle text-end fw-bold">
+                                    {% if tx.type == 'TARIK' %}-{% else %}+{% endif %}
+                                    Rp {{ tx.amount_enc }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    Belum ada riwayat transaksi.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 d-flex justify-content-center">
+            <a href="{% url 'riwayat-transaksi-nasabah' %}" class="btn btn-warning">Sembunyikan / Kunci Kembali</a>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

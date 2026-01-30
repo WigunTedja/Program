@@ -1,16 +1,12 @@
-
 import json
 import os
 import base64
 import random
 import secrets
 import math
-from phe import paillier
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-# --- 1. Math Helpers ---
 
 def get_prime(nbits):
     """
@@ -54,11 +50,9 @@ def modinv(a, m):
     """Calculate modular inverse of a mod m."""
     return pow(a, -1, m)
 
-# --- 2. Paillier Classes ---
-
 class PublicKey:
     def __init__(self, n):
-        self.n = n
+        self.n = int(n)
         self.n_sq = n * n
         self.g = n + 1 # Optimization: g = n + 1
 
@@ -89,6 +83,37 @@ class PrivateKey:
         self.public_key = public_key
         self.l = lcm(p - 1, q - 1)
         self.u = modinv(self.l, n)
+
+    def decrypt(self, ciphertext_obj):
+        """
+        Mendekripsi ciphertext (int atau EncryptedNumber).
+        Rumus: m = L(c^lambda mod n^2) * u mod n
+        """
+        # 1. Handle input flexibility (terima int murni atau objek EncryptedNumber)
+        if isinstance(ciphertext_obj, EncryptedNumber):
+            c = ciphertext_obj.ciphertext()
+        elif isinstance(ciphertext_obj, int):
+            c = ciphertext_obj
+        else:
+            raise TypeError("Ciphertext harus berupa integer atau EncryptedNumber")
+
+        n = self.n
+        n_sq = n * n
+        
+        try:
+            # Di baris ini biasanya error terjadi jika c atau self.l adalah string
+            c_lambda = pow(c, self.l, n_sq)
+        except TypeError as e:
+            print(f"CRITICAL ERROR: Gagal di pow(). Detail: {e}")
+            raise e
+
+        L_val = (c_lambda - 1) // n
+        plaintext = (L_val * self.u) % n
+
+        if plaintext > n // 2:
+            plaintext = plaintext - n
+
+        return plaintext
 
 class EncryptedNumber:
     def __init__(self, ciphertext_val, public_key):
@@ -127,7 +152,6 @@ def paillier_addition(c1, c2, n):
     """
     n_sq = n * n
     
-    # Operasi intinya hanyalah perkalian modular
     c_total = (c1 * c2) % n_sq
     return c_total
 
@@ -138,14 +162,11 @@ def paillier_subtraction(c1, c2, n):
     """
     n_sq = n * n
     
-    # 1. Cari modular inverse dari c2 terhadap n^2
-    # Ini setara dengan c2 pangkat -1
     try:
         c2_inv = pow(c2, -1, n_sq)
     except ValueError:
         raise ValueError("Invers tidak ditemukan. Pastikan n dan c2 coprime (sangat jarang terjadi jika n valid).")
 
-    # 2. Lakukan 'penjumlahan' dengan nilai invers tersebut
     c_diff = (c1 * c2_inv) % n_sq
     
     return c_diff
@@ -178,12 +199,12 @@ def decrypt_private_key(encrypted_blob_str, pin, salt_hex, pub_n):
         priv_data = json.loads(decrypted_json_bytes.decode())
         
         # 4. Rekonstruksi Objek Paillier
-        # Kita perlu merekonstruksi Public Key dulu, baru Private Key
-        public_key = paillier.PaillierPublicKey(n=int(pub_n))
-        private_key = paillier.PaillierPrivateKey(
-            public_key=public_key,
+        public_key = PublicKey(n=int(pub_n))
+        private_key = PrivateKey(
             p=int(priv_data['p']),
-            q=int(priv_data['q'])
+            q=int(priv_data['q']),
+            n=int(priv_data['n']),
+            public_key=public_key,
         )
         return private_key
     except Exception as e:

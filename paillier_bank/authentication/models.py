@@ -4,6 +4,9 @@ class Nasabah(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='nasabah')
     nama_lengkap = models.CharField(max_length=255)
+
+    # Akan dienkripsi
+    alamat = models.TextField(null=True, blank=True)
     
     # Saldo saat ini (Ciphertext).
     # Disarankan: default value di-set saat user create, bukan di sini (karena butuh enkripsi '0')

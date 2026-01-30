@@ -21,6 +21,9 @@ class Transaction(models.Model):
     # 2. Nominal untuk Penerima (Dienkripsi dgn Public Key Penerima)
     # HANYA TERISI JIKA TIPE TRANSAKSI = TRANSFER
     amount_enc_receiver = models.TextField(null=True, blank=True, help_text="Nominal encrypted with Receiver PK")
+
+    # Akan dienkripsi
+    deskripsi = models.TextField(null=True, blank=True)
     
     # Menggunakan ForeignKey agar data konsisten. Jika penerima dihapus, set null.
     related_nasabah = models.ForeignKey(
