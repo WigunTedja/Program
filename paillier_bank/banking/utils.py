@@ -62,7 +62,6 @@ class PublicKey:
         Formula: c = g^m * r^n mod n^2
         Optimized g=n+1: c = (1 + m*n) * r^n mod n^2
         """
-        # Generate random r where gcd(r, n) = 1
         while True:
             r = secrets.randbelow(self.n - 1) + 1
             if math.gcd(r, self.n) == 1:
@@ -89,7 +88,6 @@ class PrivateKey:
         Mendekripsi ciphertext (int atau EncryptedNumber).
         Rumus: m = L(c^lambda mod n^2) * u mod n
         """
-        # 1. Handle input flexibility (terima int murni atau objek EncryptedNumber)
         if isinstance(ciphertext_obj, EncryptedNumber):
             c = ciphertext_obj.ciphertext()
         elif isinstance(ciphertext_obj, int):
@@ -101,7 +99,6 @@ class PrivateKey:
         n_sq = n * n
         
         try:
-            # Di baris ini biasanya error terjadi jika c atau self.l adalah string
             c_lambda = pow(c, self.l, n_sq)
         except TypeError as e:
             print(f"CRITICAL ERROR: Gagal di pow(). Detail: {e}")
@@ -123,18 +120,15 @@ class EncryptedNumber:
     def ciphertext(self):
         return self._ciphertext
 
-# --- 3. Main Generator Function ---
 
 def generate_paillier_keypair(n_length=1024):
     """
     Generates public and private keys.
     Note: n_length=1024 means p and q should be roughly 512 bits.
     """
-    # Generating 512-bit primes takes time in Python!
     p = get_prime(n_length // 2)
     q = get_prime(n_length // 2)
     
-    # Ensure p != q
     while p == q:
         q = get_prime(n_length // 2)
         

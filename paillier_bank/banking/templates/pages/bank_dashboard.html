@@ -5,16 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Nasabah - Paillier Bank</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f5f3ff; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.1); }
         .header { text-align: center; margin-bottom: 30px; }
-        .welcome { color: #333; }
+        .header h2 { color: #4c1d95; margin-bottom: 5px; }
+        .welcome { color: #6b7280; }
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { padding: 20px; text-align: center; border: 1px solid #ddd; border-radius: 8px; transition: 0.3s; cursor: pointer; text-decoration: none; color: inherit; }
-        .card:hover { background-color: #e9ecef; transform: translateY(-2px); }
-        .btn-saldo { background-color: #28a745; color: white; border: none; }
-        .btn-transfer { background-color: #007bff; color: white; border: none; }
-        .logout-link { display: block; text-align: center; margin-top: 20px; color: #dc3545; }
+        
+        .card { 
+            padding: 25px; 
+            text-align: center; 
+            border: 2px solid #e5e7eb; 
+            border-radius: 12px; 
+            transition: 0.3s; 
+            cursor: pointer; 
+            text-decoration: none; 
+            color: inherit; 
+            background: #fff;
+        }
+        
+        .card:hover { 
+            border-color: #7c3aed;
+            transform: translateY(-4px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Warna Tombol Custom Ungu */
+        .btn-saldo { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+            color: white; 
+            border: none; 
+        }
+        
+        .btn-transfer { 
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); 
+            color: white; 
+            border: none; 
+        }
+        
+        .card h3 { font-size: 1.2rem; margin-bottom: 10px; }
+        .card p { font-size: 0.9rem; opacity: 0.9; }
+
+        .logout-link { display: block; text-align: center; margin-top: 30px; color: #dc3545; text-decoration: none; font-weight: 600; }
+        .logout-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -22,18 +55,18 @@
     <div class="container">
         <div class="header">
             <h2>Paillier Bank</h2>
-            <p class="welcome">Selamat datang, <strong>{{ user.username }}</strong></p>
+            <p class="welcome">Selamat datang kembali, <strong>{{ user.username }}</strong></p>
         </div>
 
         <div class="action-grid">
             <a href="{% url 'lihat-saldo' %}" class="card btn-saldo">
+                <div style="font-size: 2rem; margin-bottom: 10px;">💰</div>
                 <h3>Lihat Saldo</h3>
-                <p>Cek saldo terenkripsi Anda</p>
             </a>
 
             <a href="{% url 'riwayat-transaksi-nasabah' %}" class="card btn-transfer">
-                <h3>Lihat Riwayat Transaksi</h3>
-                <p>Cek riwayat transaksi</p>
+                <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
+                <h3>Riwayat Transaksi</h3>
             </a>
         </div>
 

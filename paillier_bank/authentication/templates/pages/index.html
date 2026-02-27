@@ -1,79 +1,156 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selamat Datang di Paillier Bank</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'authentication/css/style.css' %}">
-    
+    <title>Paillier Bank - Secure Homomorphic Banking</title>
     <style>
-        .welcome-card {
-            max-width: 400px;
-            width: 100%;
-            margin: 0 auto;
-            text-align: center;
+        /* Base Styles - Diadaptasi dari landing.html */
+        :root {
+            --primary: #6366f1; /* Indigo/Purple */
+            --dark: #0f172a;
+            --light: #f8fafc;
+            /* Gradient Ungu */
+            --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
         }
-        .btn-link {
-            display: block;
-            width: 100%;
-            text-decoration: none; 
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            margin-bottom: 15px;
-            box-sizing: border-box;
+            background: var(--dark);
+            /* Pattern Ungu */
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.15) 0%, transparent 40%);
+            color: white;
+            padding: 0 20px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin-bottom: 2rem;
+            color: #94a3b8;
+        }
+
+        /* Button - Styled with CSS only */
+        .btn-cta {
+            padding: 15px 35px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            background: var(--gradient);
+            border-radius: 50px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary-cta {
+            background: transparent;
+            border: 2px solid #6366f1;
+            box-shadow: none;
+        }
+        .btn-secondary-cta:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* SVG Icon Container */
+        .icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+            fill: var(--primary);
+        }
+
+        /* Features Section */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 80px 10%;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: border 0.3s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header class="main-header">
-            <h1>Paillier Bank</h1>
-            <p>Keamanan Kriptografi Homomorfik untuk Aset Anda</p>
-        </header>
-
-        <div class="auth-wrapper" style="justify-content: center;">
-            <div class="auth-card welcome-card">
-                <h2>Selamat Datang</h2> 
-                {% if user.is_authenticated %}
-                    <p style="margin-bottom: 25px; color: #666;">Halo, <b>{{ user.username }}</b>!</p>
-                    
-                    {% if user.is_staff %}
-                        <div style="background-color: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
-                            <p style="font-size: 0.9rem; color: #2e7d32; margin-bottom: 5px;">Menu Admin</p>
-                            <a href="{% url 'admin-register-nasabah' %}" class="btn btn-primary btn-link" style="background-color: #2e7d32; border-color: #2e7d32;">
-                                + Daftarkan Nasabah Baru
-                            </a>
-                        </div>
-
-                    {% else %}
-                        <div style="background-color: #e3f2fd; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #bbdefb;">
-                            <p style="font-size: 0.9rem; color: #1565c0; margin-bottom: 5px;">Menu Nasabah</p>
-                            <a href="{% url 'bank-dashboard' %}" class="btn btn-primary btn-link">
-                                Masuk ke Dashboard
-                            </a>
-                        </div>
-                    {% endif %}
-
-                    <a href="{% url 'logout' %}" class="btn btn-outline btn-link" style="border-color: #dc3545; color: #dc3545; margin-top: 10px;">
-                        Keluar (Logout)
-                    </a>
-
+    <section class="hero">
+        <h1>Paillier Bank</h1>
+        <p>Bank Masa Depan dengan Keamanan Kriptografi Homomorfik. Data saldo Anda tetap terenkripsi bahkan saat diproses oleh sistem kami.</p>
+        
+        <div style="margin-top: 20px;">
+            {% if user.is_authenticated %}
+                <p>Halo, <b>{{ user.username }}</b>!</p>
+                {% if user.is_staff %}
+                    <a href="{% url 'admin-bank-dashboard' %}" class="btn-cta">Ke Dashboard Admin</a>
                 {% else %}
-                    <p style="margin-bottom: 25px; color: #666;">Silakan pilih opsi untuk melanjutkan:</p>
-                    
-                    <a href="{% url 'login' %}" class="btn btn-primary btn-link">
-                        Masuk Akun
-                    </a>
-
-                    <a href="{% url 'register' %}" class="btn btn-outline btn-link">
-                        Buat Akun Baru
-                    </a>
+                    <a href="{% url 'bank-dashboard' %}" class="btn-cta">Ke Dashboard Nasabah</a>
                 {% endif %}
-            </div>
+                <a href="{% url 'logout' %}" class="btn-cta btn-secondary-cta">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn-cta">Login</a>
+            {% endif %}
         </div>
-    </div>
+    </section>
+
+    <section class="features">
+        <div class="card">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+            <h3>Enkripsi Homomorfik</h3>
+            <p>Saldo Anda tidak pernah didekripsi di server kami. Penjumlahan dan pengurangan dilakukan dalam bentuk ciphertext.</p>
+        </div>
+        <div class="card">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <h3>Privasi Mutlak</h3>
+            <p>Hanya Anda yang memegang kunci privat untuk melihat saldo asli Anda. Admin bank sekalipun tidak bisa melihatnya.</p>
+        </div>
+        <div class="card">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h3>Aman & Terpercaya</h3>
+            <p>Menggunakan standar keamanan kriptografi Paillier 1024-bit untuk menjamin integritas aset digital Anda.</p>
+        </div>
+    </section>
 
 </body>
 </html>

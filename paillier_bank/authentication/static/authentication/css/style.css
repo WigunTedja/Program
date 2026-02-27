@@ -7,8 +7,8 @@
 
 body {
     font-family: 'Poppins', sans-serif;
-    /* Latar belakang biru sangat muda */
-    background-color: #e3f2fd;
+    /* GANTI: Latar belakang ungu sangat muda */
+    background-color: #f5f3ff;
     color: #333;
     min-height: 100vh;
     display: flex;
@@ -29,14 +29,14 @@ body {
 }
 
 .main-header h1 {
-    /* Warna biru tua untuk judul */
-    color: #0d47a1;
+    /* GANTI: Warna ungu tua untuk judul */
+    color: #4c1d95;
     font-size: 2.5rem;
     margin-bottom: 10px;
 }
 
 .main-header p {
-    color: #546e7a;
+    color: #6b7280;
     font-size: 1.1rem;
 }
 
@@ -53,26 +53,29 @@ body {
     background: #ffffff;
     padding: 40px;
     border-radius: 15px;
-    /* Bayangan halus berwarna biru */
-    box-shadow: 0 10px 25px rgba(13, 71, 161, 0.1);
-    flex: 1; /* Membuat kedua kartu memiliki lebar yang sama */
+    /* GANTI: Bayangan halus berwarna ungu */
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.1);
+    flex: 1; 
     text-align: left;
     border-top: 5px solid transparent;
 }
 
 .auth-card h2 {
-    color: #0d47a1;
+    /* GANTI: Judul kartu ungu */
+    color: #5b21b6;
     margin-bottom: 25px;
     text-align: center;
 }
 
 /* Styling spesifik untuk membedakan kartu */
 .login-card {
-    border-top-color: #1976d2; /* Biru utama */
+    /* GANTI: Ungu utama */
+    border-top-color: #7c3aed; 
 }
 
 .register-card {
-    border-top-color: #64b5f6; /* Biru yang lebih terang */
+    /* GANTI: Ungu yang lebih terang */
+    border-top-color: #a78bfa; 
 }
 
 /* Styling Formulir */
@@ -84,13 +87,13 @@ body {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #455a64;
+    color: #4b5563;
 }
 
 .form-group input {
     width: 100%;
     padding: 12px;
-    border: 2px solid #cfd8dc;
+    border: 2px solid #e5e7eb;
     border-radius: 8px;
     font-family: inherit;
     transition: border-color 0.3s;
@@ -99,7 +102,8 @@ body {
 /* Efek saat input diklik */
 .form-group input:focus {
     outline: none;
-    border-color: #1976d2;
+    /* GANTI: Border ungu saat fokus */
+    border-color: #7c3aed;
 }
 
 /* Styling Tombol */
@@ -112,35 +116,38 @@ body {
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
+    transition: background-color 0.3s, color 0.3s, transform 0.2s;
 }
 
-/* Tombol Biru Penuh */
+/* Tombol Ungu Penuh */
 .btn-primary {
-    background-color: #1976d2;
+    /* GANTI: Background ungu */
+    background-color: #7c3aed;
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #0d47a1;
+    /* GANTI: Ungu lebih gelap saat hover */
+    background-color: #6d28d9;
 }
 
-/* Tombol Garis Biru */
+/* Tombol Garis Ungu */
 .btn-outline {
     background-color: transparent;
-    border: 2px solid #1976d2;
-    color: #1976d2;
+    /* GANTI: Border ungu */
+    border: 2px solid #7c3aed;
+    color: #7c3aed;
 }
 
 .btn-outline:hover {
-    background-color: #1976d2;
+    background-color: #7c3aed;
     color: white;
 }
 
 /* Media Query untuk Responsivitas (Layar HP) */
 @media (max-width: 768px) {
     .auth-wrapper {
-        flex-direction: column; /* Menumpuk kartu secara vertikal pada layar kecil */
+        flex-direction: column; 
     }
     
     .main-header h1 {

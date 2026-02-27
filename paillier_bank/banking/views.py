@@ -47,36 +47,28 @@ def admin_register_nasabah_page(request):
         username = request.POST.get('username')
         alamat = request.POST.get('alamat')
         email = request.POST.get('email')
+        nominal_setor = request.POST.get('nominal_setor')
         password = request.POST.get('password')
         pin = request.POST.get('pin')
-        # 1. Validasi Sederhana
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username/Email sudah digunakan!")
             return render(request, 'pages/admin_register_nasabah.html')
 
         try:
             with transaction.atomic():
-                # 2. Buat User Django
                 user = User.objects.create_user(username=username, email=email, password=password)
 
-                # 3. Generate Keypair Paillier (PERINGATAN: INI BERAT/LAMBAT)
-                # Browser akan loading lama di sini.
                 public_key, private_key = generate_paillier_keypair(n_length=1024)
 
-                # 4. Enkripsi Private Key dengan PIN
                 salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
 
-                # 5. Buat Saldo Awal terenkripsi
-                encrypted_saldo_obj = public_key.encrypt(100000)
+                encrypted_saldo_obj = public_key.encrypt(nominal_setor)
                 encrypted_saldo_str = str(encrypted_saldo_obj.ciphertext())
 
-                # 6. Hash PIN
                 pin_hash = hashlib.sha256(pin.encode()).hexdigest()
 
-                # 7. Enkripsi alamat
                 encrypted_alamat = text_encrypt.encrypt_text(alamat, public_key)
 
-                # 7. Simpan Nasabah
                 Nasabah.objects.create(
                     user=user,
                     nama_lengkap=nama_lengkap,
@@ -87,6 +79,16 @@ def admin_register_nasabah_page(request):
                     pin_hash=pin_hash,
                     encrypted_saldo=encrypted_saldo_str,
                     alamat=encrypted_alamat
+                )
+
+                encrypted_deskripsi = text_encrypt.encrypt_text("Setoran Awal", public_key)
+                Transaction.objects.create(
+                    nasabah= nasabah,
+                    transaction_type = 'SETOR',
+                    amount_enc_sender= encrypted_saldo_str,
+                    amount_enc_receiver= None,
+                    related_nasabah= None,
+                    deskripsi= encrypted_deskripsi,
                 )
 
                 messages.success(request, f"Sukses! Nasabah {nama_lengkap} berhasil didaftarkan dengan Kunci Homomorfik.")
@@ -136,30 +138,22 @@ def admin_setor_tunai(request):
 
                 target_user = user_query.get()
 
-                # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
                 # select_for_update() akan menahan transaksi lain sampai ini selesai
                 nasabah = Nasabah.objects.select_for_update().get(user=target_user)
 
-                # 3. Ambil Public Key & Konversi ke Integer
                 n = int(nasabah.pub_key_n)
                 public_key = PublicKey(n)
-                # n_sq = n * n
-
-                # 4. Encrypt Nominal Setor (m_deposit -> c_deposit)
+                
                 plain_setor = int(nominal_setor)
                 cipher_setor = public_key.encrypt(plain_setor)
                 cipher_saldo = int(nasabah.encrypted_saldo)
 
-                # 5. Operasi Homomorphic Addition
                 cipher_saldo_baru = paillier_addition(cipher_saldo, cipher_setor.ciphertext(), n)
 
-                # 6. Simpan Hasil (Kembalikan ke string)
                 nasabah.encrypted_saldo = str(cipher_saldo_baru)
                 nasabah.save()
 
-                # 7. Enkripsi riwayat
                 encrypted_deskripsi = text_encrypt.encrypt_text(deskripsi, public_key)
-                # 8. Catat riwayat transaksi 
                 Transaction.objects.create(
                     nasabah= nasabah,
                     transaction_type = 'SETOR',
@@ -214,31 +208,22 @@ def admin_tarik_tunai(request):
 
                 target_user = user_query.get()
 
-                # 2. Get Nasabah dengan Lock (Mencegah Race Condition)
                 nasabah = Nasabah.objects.select_for_update().get(user=target_user)
 
-                # 3. Ambil Public Key & Konversi ke Integer
                 n = int(nasabah.pub_key_n)
                 public_key = PublicKey(n)
-                # n_sq = n * n
-
-                # 4. Encrypt Nominal tarik (m_deposit -> c_deposit)
+                
                 plain_tarik = int(nominal_tarik)
                 cipher_tarik = public_key.encrypt(plain_tarik)
                 cipher_saldo = int(nasabah.encrypted_saldo)
 
-                # 5. Operasi Homomorphic Subtraction
                 cipher_saldo_baru = paillier_subtraction(cipher_saldo, cipher_tarik.ciphertext(), n)
                 
-                # 6. Simpan Hasil (Kembalikan ke string)
                 nasabah.encrypted_saldo = str(cipher_saldo_baru)
                 nasabah.save()
 
-                
-                # 7. Enkripsi riwayat
                 encrypted_deskripsi = text_encrypt.encrypt_text(deskripsi, public_key)
 
-                # 8. Catat riwayat transaksi
                 Transaction.objects.create(
                     nasabah=nasabah,
                     transaction_type = 'TARIK',
@@ -270,14 +255,13 @@ def lihat_saldo(request):
     if request.method == 'POST':
         pin_input = request.POST.get('pin')
 
-        # 1. Verifikasi Hash PIN
+        # Verifikasi Hash PIN
         input_hash = hashlib.sha256(pin_input.encode()).hexdigest()
         
         if input_hash != nasabah.pin_hash:
             messages.error(request, "PIN Salah!")
         else:
             try:
-                # 2. Dekripsi Private Key Paillier (Berat)
                 private_key = decrypt_private_key(
                     encrypted_blob_str=nasabah.priv_pail_key,
                     pin=pin_input,
@@ -285,15 +269,10 @@ def lihat_saldo(request):
                     pub_n=nasabah.pub_key_n
                 )
 
-                # 3. Dekripsi Saldo
-                # Saldo di DB tersimpan sebagai String angka ciphertext
                 encrypted_saldo_int = int(nasabah.encrypted_saldo)
                 
-                # Bungkus kembali menjadi EncryptedNumber 
                 publicKey_nasabah = PublicKey(int(nasabah.pub_key_n))
-                # enc_saldo_obj = EncryptedNumber(encrypted_saldo_int, publicKey_nasabah)
                 
-                # DO THE MAGIC: Dekripsi Homomorfik
                 saldo_plain = private_key.decrypt(encrypted_saldo_int)
                 
                 messages.success(request, "Saldo berhasil didekripsi.")
@@ -311,21 +290,21 @@ def lihat_saldo(request):
 @login_required(login_url='login')
 def riwayat_transaksi(request):
     nasabah = request.user.nasabah
-    transaksi_list = Transaction.objects.filter(nasabah=nasabah).order_by('-timestamp')
     transactions_decrypted = []
     pin_verified = False
 
+    error_msg = None
     if request.method == 'POST':
         pin_input = request.POST.get('pin')
 
-        # 1. Verifikasi Hash PIN
+        # Verifikasi Hash PIN
         input_hash = hashlib.sha256(pin_input.encode()).hexdigest()
         
         if input_hash != nasabah.pin_hash:
             messages.error(request, "PIN Salah!")
         else:
             try:
-                # 2. Dekripsi Private Key Paillier menggunakan PIN
+                transaksi_list = Transaction.objects.filter(nasabah=nasabah).order_by('-timestamp')
                 private_key = decrypt_private_key(
                     encrypted_blob_str=nasabah.priv_pail_key,
                     pin=pin_input,
@@ -333,10 +312,8 @@ def riwayat_transaksi(request):
                     pub_n=nasabah.pub_key_n
                 )
                 
-                # Rekonstruksi Public Key untuk proses dekripsi teks
                 public_key = PublicKey(int(nasabah.pub_key_n))
                 
-                # 3. Iterasi dan Dekripsi Deskripsi per Transaksi
                 for tx in transaksi_list:
                     deskripsi = "Gagal mendekripsi deskripsi."
                     nominal = "Gagal mendekripsi nominal"
@@ -344,14 +321,7 @@ def riwayat_transaksi(request):
                         deskripsi = text_encrypt.decrypt_text(tx.deskripsi,private_key,public_key)                    
                     if tx.amount_enc_sender:
                         nominal = private_key.decrypt(int(tx.amount_enc_sender))
-                
-                # # Iterasi dekripsi nominal transaksi
-                # for tx in transaksi_list:
-                #     nominal = "Gagal mendekripsi nominal"
-                #     if tx.amount_enc_sender:
-                #         nominal = private_key.decrypt(tx.amount_enc_sender)
 
-                    # Simpan data ke list sementara
                     transactions_decrypted.append({
                         'timestamp': tx.timestamp,
                         'type': tx.transaction_type,
@@ -363,10 +333,50 @@ def riwayat_transaksi(request):
                 messages.success(request, "Riwayat transaksi berhasil didekripsi.")
 
             except Exception as e:
-                messages.error(request, f"Error Dekripsi: {str(e)}")
+                error_msg = f"Error Dekripsi: {str(e)}"
+                print(f"DEBUG: Error={str(e)}")
+                messages.error(request, error_msg)
 
     context = {
         'transaksi': transactions_decrypted if pin_verified else None,
         'pin_verified': pin_verified
     }
     return render(request, 'pages/riwayat_transaksi.html', context)
+
+def profil_nasabah(request):
+    nasabah = request.user.nasabah
+    alamat_plain = None
+    pin_verified = False
+
+    if request.method == 'POST':
+        pin_input = request.POST.get('pin')
+        input_hash = hashlib.sha256(pin_input.encode()).hexdigest()
+
+        if input_hash != nasabah.pin_hash:
+            messages.error(request, "PIN Salah!")
+        else:
+            try:
+                private_key = decrypt_private_key(
+                    encrypted_blob_str=nasabah.priv_pail_key,
+                    pin=pin_input,
+                    salt_hex=nasabah.key_salt,
+                    pub_n=nasabah.pub_key_n,
+                )
+                public_key = PublicKey(int(nasabah.pub_key_n))
+
+                if nasabah.alamat:
+                    alamat_plain = text_encrypt.decrypt_text(nasabah.alamat, private_key, public_key)
+                else:
+                    alamat_plain = "Alamat tidak ditemukan."
+                
+                pin_verified = True
+                messages.success(request, "Profil berhasil didekripsi.")
+            except Exception as e:
+                messages.error(request, f"Gagal mendekripsi profil nasabah.")
+
+    context ={
+        'nasabah':nasabah,
+        'alamat':alamat_plain,
+        'pin_verified': pin_verified,
+    }
+    return render(request, 'pages/profil nasabah.html', context)
