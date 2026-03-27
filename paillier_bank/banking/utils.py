@@ -151,7 +151,7 @@ def paillier_addition(c1, c2, n):
 
 def paillier_subtraction(c1, c2, n):
     """
-    Mengurangkan ciphertext c2 dari c1.
+    Melakukan c1 - c2.
     Logika: D(c1 * inverse(c2) mod n^2) = m1 - m2
     """
     n_sq = n * n
