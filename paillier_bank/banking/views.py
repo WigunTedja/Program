@@ -8,7 +8,7 @@ from authentication.models import Nasabah
 from django.http import HttpResponse
 import hashlib
 # from phe import paillier, EncryptedNumber
-from .utils import EncryptedNumber, decrypt_private_key, encrypt_private_key, paillier_encrypt, generate_paillier_keypair, paillier_addition, paillier_subtraction, PublicKey, PrivateKey
+from .utils import EncryptedNumber, decrypt_private_key, encrypt_private_key, generate_paillier_keypair, paillier_addition, paillier_subtraction, PublicKey, PrivateKey
 from .models import Transaction
 from . import text_encrypt
 
@@ -62,14 +62,14 @@ def admin_register_nasabah_page(request):
 
                 salt_hex, encrypted_priv_key = encrypt_private_key(private_key, pin)
 
-                encrypted_saldo_obj = public_key.encrypt(nominal_setor)
+                encrypted_saldo_obj = public_key.encrypt(int(nominal_setor))
                 encrypted_saldo_str = str(encrypted_saldo_obj.ciphertext())
 
                 pin_hash = hashlib.sha256(pin.encode()).hexdigest()
 
                 encrypted_alamat = text_encrypt.encrypt_text(alamat, public_key)
 
-                Nasabah.objects.create(
+                nasabah = Nasabah.objects.create(
                     user=user,
                     nama_lengkap=nama_lengkap,
                     pub_key_n=str(public_key.n),
@@ -304,7 +304,7 @@ def riwayat_transaksi(request):
             messages.error(request, "PIN Salah!")
         else:
             try:
-                transaksi_list = Transaction.objects.filter(nasabah=nasabah).order_by('-timestamp')
+                transaksi_list = Transaction.objects.filter(Q(nasabah=nasabah) | Q(related_nasabah=nasabah)).order_by('-timestamp')
                 private_key = decrypt_private_key(
                     encrypted_blob_str=nasabah.priv_pail_key,
                     pin=pin_input,
@@ -315,18 +315,41 @@ def riwayat_transaksi(request):
                 public_key = PublicKey(int(nasabah.pub_key_n))
                 
                 for tx in transaksi_list:
-                    deskripsi = "Gagal mendekripsi deskripsi."
-                    nominal = "Gagal mendekripsi nominal"
-                    if tx.deskripsi:
-                        deskripsi = text_encrypt.decrypt_text(tx.deskripsi,private_key,public_key)                    
-                    if tx.amount_enc_sender:
-                        nominal = private_key.decrypt(int(tx.amount_enc_sender))
+                    is_sender = (tx.nasabah == nasabah)
+                    
+                    deskripsi_plain = "Deskripsi tidak tersedia"
+                    nominal_plain = 0
+                    display_type = tx.transaction_type
+
+                    if is_sender:
+                        if tx.deskripsi:
+                            try:
+                                deskripsi_plain = text_encrypt.decrypt_text(tx.deskripsi, private_key, public_key)
+                            except:
+                                deskripsi_plain = "Gagal mendekripsi deskripsi."
+                                
+                        if tx.amount_enc_sender:
+                            nominal_plain = private_key.decrypt(int(tx.amount_enc_sender))
+                            
+                        # Ubah label untuk UI
+                        if tx.transaction_type == 'TRANSFER':
+                            display_type = 'TRANSFER KELUAR'
+                            
+                    else:
+                        # --- LOGIKA JIKA PENGGUNA ADALAH PENERIMA ---
+                        deskripsi_plain = f"Transfer masuk dari {tx.nasabah.nama_lengkap}"
+                        
+                        if tx.amount_enc_receiver:
+                            nominal_plain = private_key.decrypt(int(tx.amount_enc_receiver))
+                            
+                        display_type = 'TRANSFER MASUK'
 
                     transactions_decrypted.append({
                         'timestamp': tx.timestamp,
                         'type': tx.transaction_type,
-                        'deskripsi': deskripsi,
-                        'amount_enc': nominal
+                        'deskripsi': deskripsi_plain,
+                        'amount_enc': nominal_plain,
+                        'is_negative': True if display_type in ['TARIK', 'TRANSFER KELUAR'] else False
                     })
                 
                 pin_verified = True
@@ -342,6 +365,83 @@ def riwayat_transaksi(request):
         'pin_verified': pin_verified
     }
     return render(request, 'pages/riwayat_transaksi.html', context)
+
+@login_required(login_url='login')
+def nasabah_transfer(request):
+    if request.method == 'POST':
+        nasabah_sumber = request.user.nasabah
+        pin_verified = False
+        username_tujuan = request.POST.get('username','').strip()
+        email_tujuan = request.POST.get('email','').strip()
+        nominal_transfer = request.POST.get('nominal_transfer')
+        deskripsi = request.POST.get('deskripsi')
+
+        try:
+            # Validasi input kosong
+            if not nominal_transfer or (not username_tujuan and not email_tujuan):
+                raise ValueError("Data nasabah atau nominal tidak boleh kosong.")
+            
+            nominal_int = int(nominal_transfer)
+            if nominal_int <= 0:
+                raise ValueError("Nominal transfer harus positif.")
+
+            with transaction.atomic():
+                filters =Q()
+
+                if username_tujuan:
+                    filters |= Q(username =username_tujuan)
+                if email_tujuan:
+                    filters |= Q(email=email_tujuan)
+                if not filters:
+                    raise ValueError("Isikan username atau email nasabah")
+                
+                user_query = User.objects.filter(filters)
+                
+                if not user_query.exists():
+                    raise ValueError("User dengan username/email tersebut tidak ditemukan.")
+
+                target_user = user_query.get()
+                # Nasabah tujuan
+                nasabah_tujuan = Nasabah.objects.select_for_update().get(user=target_user)
+                n_tujuan = int(nasabah_tujuan.pub_key_n)
+                public_key_tujuan = PublicKey(n_tujuan)
+
+                # Nasabah sumber
+                nasabah_sumber = Nasabah.objects.select_for_update().get(user=request.user)
+                n_sumber = int(nasabah_sumber.pub_key_n)
+                public_key_sumber = PublicKey(n_sumber)
+
+                cipher_tujuan = public_key_tujuan.encrypt(int(nominal_transfer))
+                cipher_sumber = public_key_sumber.encrypt(int(nominal_transfer))
+
+                saldo_baru_tujuan = paillier_addition(int(nasabah_tujuan.encrypted_saldo), cipher_tujuan.ciphertext(), n_tujuan)
+                saldo_baru_sumber = paillier_subtraction(int(nasabah_sumber.encrypted_saldo), cipher_sumber.ciphertext(), n_sumber)
+                
+                nasabah_tujuan.encrypted_saldo = str(saldo_baru_tujuan)
+                nasabah_tujuan.save()
+
+                nasabah_sumber.encrypted_saldo = str(saldo_baru_sumber)
+                nasabah_sumber.save()
+
+                Transaction.objects.create(
+                    nasabah=nasabah_sumber,
+                    transaction_type = 'TRANSFER',
+                    amount_enc_sender = str(cipher_sumber.ciphertext()),
+                    amount_enc_receiver = str(cipher_tujuan.ciphertext()),
+                    related_nasabah = nasabah_tujuan,
+                )
+
+                messages.success(request, f"Sukses! Saldo  ditransfer dari {nasabah_sumber.nama_lengkap} ke {nasabah_tujuan.nama_lengkap}")
+                return redirect('nasabah-transfer') 
+
+        except Nasabah.DoesNotExist:
+            messages.error(request, "User ditemukan, tapi belum terdaftar sebagai Nasabah (Profile belum dibuat).")
+        except ValueError as ve:
+            messages.error(request, str(ve))
+        except Exception as e:
+            messages.error(request, f"Terjadi Kesalahan Sistem: {str(e)}")
+
+    return render(request, 'pages/nasabah_transfer.html')
 
 def profil_nasabah(request):
     nasabah = request.user.nasabah

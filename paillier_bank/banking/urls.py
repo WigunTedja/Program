@@ -10,4 +10,5 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='bank-dashboard'),
     path('saldo/', views.lihat_saldo, name='lihat-saldo'),
     path('riwayat/', views.riwayat_transaksi, name='riwayat-transaksi-nasabah'),
+    path('transfer/', views.nasabah_transfer, name='nasabah-transfer'),
 ]

@@ -71,10 +71,10 @@
                                             <span class="fw-bold">{{ tx.timestamp|date:"H:i" }}</span>
                                         </td>
                                         <td class="align-middle">
-                                            {% if tx.type == 'SETOR' %}
-                                                <span class="badge rounded-pill bg-success-subtle text-success border border-success">SETOR</span>
-                                            {% elif tx.type == 'TARIK' %}
-                                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger">TARIK</span>
+                                            {% if tx.type == 'SETOR' or tx.type == 'TRANSFER MASUK' %}
+                                                <span class="badge rounded-pill bg-success-subtle text-success border border-success">{{ tx.type }}</span>
+                                            {% elif tx.type == 'TARIK' or tx.type == 'TRANSFER KELUAR' %}
+                                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger">{{ tx.type }}</span>
                                             {% else %}
                                                 <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary">{{ tx.type }}</span>
                                             {% endif %}
@@ -83,8 +83,8 @@
                                             <strong>{{ tx.deskripsi }}</strong>
                                         </td>
                                         <td class="align-middle text-end pe-4 fw-bold">
-                                            <span class="{% if tx.type == 'TARIK' %}text-danger{% else %}text-success{% endif %}">
-                                                {% if tx.type == 'TARIK' %}-{% else %}+{% endif %}
+                                            <span class="{% if tx.is_negative %}text-danger{% else %}text-success{% endif %}">
+                                                {% if tx.is_negative %}-{% else %}+{% endif %}
                                                 Rp {{ tx.amount_enc }}
                                             </span>
                                         </td>
