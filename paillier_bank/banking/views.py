@@ -7,7 +7,6 @@ from django.db.models import Q
 from authentication.models import Nasabah
 from django.http import HttpResponse
 import hashlib
-# from phe import paillier, EncryptedNumber
 from .utils import EncryptedNumber, decrypt_private_key, encrypt_private_key, generate_paillier_keypair, paillier_addition, paillier_subtraction, PublicKey, PrivateKey
 from .models import Transaction
 from . import text_encrypt
@@ -98,7 +97,6 @@ def admin_register_nasabah_page(request):
             messages.error(request, f"Terjadi Kesalahan Sistem: {str(e)}")
             return render(request, 'pages/admin_register_nasabah.html')
 
-    # Jika GET, tampilkan form kosong
     return render(request, 'pages/admin_register_nasabah.html')
 
 
@@ -112,7 +110,6 @@ def admin_setor_tunai(request):
         deskripsi = request.POST.get('deskripsi')
 
         try:
-            # Validasi input kosong
             if not nominal_setor or (not username and not email):
                 raise ValueError("Data nasabah atau nominal tidak boleh kosong.")
             
@@ -138,7 +135,6 @@ def admin_setor_tunai(request):
 
                 target_user = user_query.get()
 
-                # select_for_update() akan menahan transaksi lain sampai ini selesai
                 nasabah = Nasabah.objects.select_for_update().get(user=target_user)
 
                 n = int(nasabah.pub_key_n)
@@ -183,7 +179,6 @@ def admin_tarik_tunai(request):
         deskripsi = request.POST.get('deskripsi')
 
         try:
-            # Validasi input kosong
             if not nominal_tarik or (not username and not email):
                 raise ValueError("Data nasabah atau nominal tidak boleh kosong.")
             
@@ -255,7 +250,6 @@ def lihat_saldo(request):
     if request.method == 'POST':
         pin_input = request.POST.get('pin')
 
-        # Verifikasi Hash PIN
         input_hash = hashlib.sha256(pin_input.encode()).hexdigest()
         
         if input_hash != nasabah.pin_hash:
@@ -297,7 +291,6 @@ def riwayat_transaksi(request):
     if request.method == 'POST':
         pin_input = request.POST.get('pin')
 
-        # Verifikasi Hash PIN
         input_hash = hashlib.sha256(pin_input.encode()).hexdigest()
         
         if input_hash != nasabah.pin_hash:
@@ -331,12 +324,10 @@ def riwayat_transaksi(request):
                         if tx.amount_enc_sender:
                             nominal_plain = private_key.decrypt(int(tx.amount_enc_sender))
                             
-                        # Ubah label untuk UI
                         if tx.transaction_type == 'TRANSFER':
                             display_type = 'TRANSFER KELUAR'
                             
                     else:
-                        # --- LOGIKA JIKA PENGGUNA ADALAH PENERIMA ---
                         deskripsi_plain = f"Transfer masuk dari {tx.nasabah.nama_lengkap}"
                         
                         if tx.amount_enc_receiver:

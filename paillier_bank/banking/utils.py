@@ -10,8 +10,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def get_prime(nbits):
     """
-    Generates a prime number of nbits using the Miller-Rabin primality test.
-    This is slow in pure Python but necessary for the assignment.
+    Generates a prime number of nbits using the Miller-Rabin primality test
     """
     while True:
         p = secrets.randbits(nbits)
@@ -58,9 +57,7 @@ class PublicKey:
 
     def encrypt(self, m):
         """
-        Encrypts integer m.
-        Formula: c = g^m * r^n mod n^2
-        Optimized g=n+1: c = (1 + m*n) * r^n mod n^2
+        Mengenkripsi integer m.
         """
         while True:
             r = secrets.randbelow(self.n - 1) + 1
@@ -86,7 +83,6 @@ class PrivateKey:
     def decrypt(self, ciphertext_obj):
         """
         Mendekripsi ciphertext (int atau EncryptedNumber).
-        Rumus: m = L(c^lambda mod n^2) * u mod n
         """
         if isinstance(ciphertext_obj, EncryptedNumber):
             c = ciphertext_obj.ciphertext()
@@ -107,8 +103,7 @@ class PrivateKey:
         L_val = (c_lambda - 1) // n
         plaintext = (L_val * self.u) % n
 
-        if plaintext > n // 2:
-            plaintext = plaintext - n
+
 
         return plaintext
 
@@ -121,10 +116,10 @@ class EncryptedNumber:
         return self._ciphertext
 
 
-def generate_paillier_keypair(n_length=1024):
+def generate_paillier_keypair(n_length=2048):
     """
     Generates public and private keys.
-    Note: n_length=1024 means p and q should be roughly 512 bits.
+    Note: n_length=2048 means p and q should be roughly 1024 bits.
     """
     p = get_prime(n_length // 2)
     q = get_prime(n_length // 2)
@@ -159,7 +154,7 @@ def paillier_subtraction(c1, c2, n):
     try:
         c2_inv = pow(c2, -1, n_sq)
     except ValueError:
-        raise ValueError("Invers tidak ditemukan. Pastikan n dan c2 coprime (sangat jarang terjadi jika n valid).")
+        raise ValueError("Invers tidak ditemukan. Pastikan n dan c2 coprime.")
 
     c_diff = (c1 * c2_inv) % n_sq
     
@@ -180,19 +175,14 @@ def decrypt_private_key(encrypted_blob_str, pin, salt_hex, pub_n):
     Mendekripsi Private Key Paillier dari database menggunakan PIN user.
     """
     try:
-        # 1. Regenerate Kunci AES dari PIN + Salt yang tersimpan
         salt = bytes.fromhex(salt_hex)
         key = generate_aes_key_from_pin(pin, salt)
         
-        # 2. Dekripsi Blob JSON
         f = Fernet(key)
-        # Fernet butuh bytes, db menyimpan string
         decrypted_json_bytes = f.decrypt(encrypted_blob_str.encode())
         
-        # 3. Parsing JSON
         priv_data = json.loads(decrypted_json_bytes.decode())
         
-        # 4. Rekonstruksi Objek Paillier
         public_key = PublicKey(n=int(pub_n))
         private_key = PrivateKey(
             p=int(priv_data['p']),
@@ -202,12 +192,11 @@ def decrypt_private_key(encrypted_blob_str, pin, salt_hex, pub_n):
         )
         return private_key
     except Exception as e:
-        # Jika PIN salah, Fernet akan raise InvalidToken / error dekripsi
         raise ValueError("Gagal mendekripsi private key. PIN mungkin salah.")
 
 def encrypt_private_key(private_key_obj, pin):
     """Enkripsi Private Key Paillier menggunakan PIN"""
-    # 1. Serialisasi Private Key ke JSON
+    # Serialisasi Private Key ke JSON
     priv_data = {
         'p': private_key_obj.p,
         'q': private_key_obj.q,
@@ -215,11 +204,9 @@ def encrypt_private_key(private_key_obj, pin):
     }
     priv_json = json.dumps(priv_data)
     
-    # 2. Generate Salt dan Kunci AES
     salt = os.urandom(16)
     key = generate_aes_key_from_pin(pin, salt)
     
-    # 3. Enkripsi
     f = Fernet(key)
     encrypted_blob = f.encrypt(priv_json.encode())
     

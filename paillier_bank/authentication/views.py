@@ -10,16 +10,16 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
 
-# --- API VIEW ---
+
 def index(request):
     return render(request, 'pages/index.html')
 
 def login_view(request):
-    # Jika user sudah login, redirect
+    
     if request.user.is_authenticated:
         if request.user.is_staff:
-            return redirect('admin-bank-dashboard') # Atau halaman admin kamu
-        return redirect('bank-dashboard') # Halaman dashboard nasabah
+            return redirect('admin-bank-dashboard') 
+        return redirect('bank-dashboard') 
 
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -30,7 +30,6 @@ def login_view(request):
 
             if user is not None:
                 login(request, user)
-                # LOGIC REDIRECTION:
                 if user.is_staff:
                     return redirect('admin-bank-dashboard') 
                 else:
@@ -46,10 +45,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    # Dengan memanggil get_messages dan mengiterasinya, 
-    # Django menganggap pesan sudah "dibaca" dan menghapusnya dari antrian.
     storage = messages.get_messages(request)
     for message in storage:
-        pass # Kita tidak melakukan apa-apa, cuma biar dianggap sudah dibaca.
-    # Setelah logout, arahkan kembali ke halaman login atau halaman welcome
+        pass 
     return redirect('login')
